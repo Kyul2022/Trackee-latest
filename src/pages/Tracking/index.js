@@ -22,7 +22,7 @@ const Tracking = () => {
     const [idColis, setIdColis] = useState('');
     const [idBus, setIdBus] = useState('');
 
-    const bearerToken = "eyJhbGciOiJIUzUxMiJ9.eyJhZ2VuY2UiOiJZYW91bmRlIiwibWF0cmljdWxlIjoiRkktMDAxIiwic3ViIjoiRkktMDAxIiwiaWF0IjoxNzU2MTExNzA2LCJleHAiOjE3NTYxMjk3MDZ9.GR_sPS0QJfEkOFcWpIyAYVxjg_8Nre2mPv89YcYscyEdsrsbga5H_9rGsuhfyp2UQXwNGnhUIxRpF_WZgX37GA";
+    const bearerToken = "eyJhbGciOiJIUzUxMiJ9.eyJhZ2VuY2UiOiJZYW91bmRlIiwibWF0cmljdWxlIjoiRkktMDAxIiwic3ViIjoiRkktMDAxIiwiaWF0IjoxNzU2MTkyMTA3LCJleHAiOjE3NTYyMTAxMDd9.BSeJLQCx-EQ2FtTQEWdf9yLFn7rQIRIdADgUotAqMJYEj5AraukCKBCloyoGwh16zgMVOyUQcvpiczmh1pFcmg";
 
 
     // State for Google Maps data

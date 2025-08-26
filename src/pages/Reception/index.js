@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect} from "react";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import Breadcrumbs from "@mui/material/Breadcrumbs";
 import HomeIcon from "@mui/icons-material/Home";
@@ -23,9 +23,24 @@ const Reception = () => {
   const [search, setSearch] = useState("");
   const [showModal, setShowModal] = useState(false);
   const [searchR, setSearchR] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
   const [activeTab, setActiveTab] = useState('livraison');
 
+  const bearerToken = "eyJhbGciOiJIUzUxMiJ9.eyJhZ2VuY2UiOiJZYW91bmRlIiwibWF0cmljdWxlIjoiRkktMDAxIiwic3ViIjoiRkktMDAxIiwiaWF0IjoxNzU2MTkyMTA3LCJleHAiOjE3NTYyMTAxMDd9.BSeJLQCx-EQ2FtTQEWdf9yLFn7rQIRIdADgUotAqMJYEj5AraukCKBCloyoGwh16zgMVOyUQcvpiczmh1pFcmg";
+
   const [withdrawnStates, setWithdrawnStates] = useState({});
+
+  const formatDate = (dateString) => {
+    if (!dateString) return 'N/A';
+    return new Date(dateString).toLocaleDateString('fr-FR', {
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit'
+    });
+  };
 
   const [openModal, setOpenModal] = useState(false); 
   const [selectedItem, setSelectedItem] = useState(null); 
@@ -35,6 +50,51 @@ const Reception = () => {
 
   const [deliveries, setDeliveries] = useState(dataLiv);
 
+
+    const fetchDeliveries = async () => {
+    try {
+      
+      if (!bearerToken) {
+        throw new Error('Token d\'authentification manquant. Veuillez vous reconnecter.');
+      }
+
+      const response = await fetch('http://localhost:8080/delivery/arrivee/', {
+        method: 'GET',
+        credentials: 'include', // Include session cookies
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${bearerToken}`
+        }
+      });
+
+      if (!response.ok) {
+        if (response.status === 401) {
+          throw new Error('Session expirée. Veuillez vous reconnecter.');
+        }
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const data = await response.json();
+      console.log("first")
+      console.log(JSON.stringify(data,2,null))
+      setDeliveries(data);
+      setLoading(false);
+    } catch (err) {
+      console.error('Error fetching deliveries:', err);
+      setError('Erreur lors du chargement des livraisons: ' + err.message);
+      setLoading(false);
+      
+      // Redirect to login if authentication error
+      if (err.message.includes('Token') || err.message.includes('Session')) {
+        // Uncomment the line below if you want to redirect to login
+        // window.location.href = '/login';
+      }
+    }
+  };
+
+      useEffect(() => {
+      fetchDeliveries();
+    }, []);
 
    // Open modal for a specific delivery
    const handleOpenModalDelivery = (id) => {
@@ -46,6 +106,11 @@ const Reception = () => {
   const handleCloseModalDelivery = () => {
     setShowModal(false);
     setCurrentDeliveryId(null);
+  };
+
+    const getDriver = (delivery) => {
+    // Mock driver data - replace with actual API call
+    return 'KAMDEM';
   };
 
    // Handle confirmation of delivery state change
@@ -196,12 +261,12 @@ const Reception = () => {
           <tbody>
             {currentDeliveries.map((item) => (
               <tr key={item.id}>
-                <td>{item.id}</td>
-                <td>{item.destination}</td>
-                <td>{item.source}</td>
-                <td>{item.bus_matricule}</td>
-                <td>{item.bus_driver}</td>
-                <td>{item.date}</td>
+                <td>{item.labelLivraison}</td>
+                <td>{item.villeArrivee}</td>
+                <td>{item.villeDepart}</td>
+                <td>{item.bus?.matricule}</td>
+                <td>{getDriver(item)}</td>
+                <td>{formatDate(item.depart)}</td>
                 <td className="actionsBtn justify-content-center">
                   <Button
                     className={item.state === "Arrivé" ? "btn-error" : "btn-yellow"}
