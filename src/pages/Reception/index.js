@@ -27,7 +27,7 @@ const Reception = () => {
   const [error, setError] = useState(null);
   const [activeTab, setActiveTab] = useState('livraison');
 
-  const bearerToken = "eyJhbGciOiJIUzUxMiJ9.eyJhZ2VuY2UiOiJZYW91bmRlIiwibWF0cmljdWxlIjoiRkktMDAxIiwic3ViIjoiRkktMDAxIiwiaWF0IjoxNzU2MTkyMTA3LCJleHAiOjE3NTYyMTAxMDd9.BSeJLQCx-EQ2FtTQEWdf9yLFn7rQIRIdADgUotAqMJYEj5AraukCKBCloyoGwh16zgMVOyUQcvpiczmh1pFcmg";
+  const bearerToken = "eyJhbGciOiJIUzUxMiJ9.eyJhZ2VuY2UiOiJZYW91bmRlIiwibWF0cmljdWxlIjoiRkktMDAxIiwic3ViIjoiRkktMDAxIiwiaWF0IjoxNzU2MzIyMTQ0LCJleHAiOjE3NTYzNDAxNDR9.qJZyWGsxQNXikpxfvO4Td257Vh4qGRzinr9PZ7fv13AmfODNR4xV-DJXiOhmjdRDwsy_f-SI0UIkjWJUs_RtEg";
 
   const [withdrawnStates, setWithdrawnStates] = useState({});
 
@@ -49,6 +49,7 @@ const Reception = () => {
   const rowsPerPage = 5; // Adjust this value for the number of rows per page
 
   const [deliveries, setDeliveries] = useState(dataLiv);
+  const [packages, setPackages] = useState(dataLiv);
 
 
     const fetchDeliveries = async () => {
@@ -91,10 +92,61 @@ const Reception = () => {
       }
     }
   };
+  useEffect(() => {
+    // appel initial au montage
+    fetchDeliveries();
+    fetchPackages();
 
-      useEffect(() => {
+    // mise en place du timer toutes les 5 minutes (300000 ms)
+    const interval = setInterval(() => {
       fetchDeliveries();
-    }, []);
+      fetchPackages();
+    }, 300000);
+
+    // nettoyage quand le composant est démonté
+    return () => clearInterval(interval);
+  }, []); // dépendances vides → uniquement au montage
+
+        const fetchPackages = async () => {
+    try {
+      
+      if (!bearerToken) {
+        throw new Error('Token d\'authentification manquant. Veuillez vous reconnecter.');
+      }
+
+      const response = await fetch('http://localhost:8080/package/arrivee', {
+        method: 'GET',
+        credentials: 'include', // Include session cookies
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${bearerToken}`
+        }
+      });
+
+      if (!response.ok) {
+        if (response.status === 401) {
+          throw new Error('Session expirée. Veuillez vous reconnecter.');
+        }
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const data = await response.json();
+      console.log("first")
+      console.log(JSON.stringify(data,2,null))
+      setPackages(data);
+      setLoading(false);
+    } catch (err) {
+      console.error('Error fetching deliveries:', err);
+      setError('Erreur lors du chargement des livraisons: ' + err.message);
+      setLoading(false);
+      
+      // Redirect to login if authentication error
+      if (err.message.includes('Token') || err.message.includes('Session')) {
+        // Uncomment the line below if you want to redirect to login
+        // window.location.href = '/login';
+      }
+    }
+  };
 
    // Open modal for a specific delivery
    const handleOpenModalDelivery = (id) => {
@@ -253,8 +305,7 @@ const Reception = () => {
               <th>Matricule Bus</th>
               <th>Chauffeur Bus</th>
               <th>Date Départ</th>
-              <th>Etat de la Livraison</th>
-              <th>Actions</th>
+              <th>Actions/Statut</th>
             </tr>
           </thead>
 
@@ -267,14 +318,7 @@ const Reception = () => {
                 <td>{item.bus?.matricule}</td>
                 <td>{getDriver(item)}</td>
                 <td>{formatDate(item.depart)}</td>
-                <td className="actionsBtn justify-content-center">
-                  <Button
-                    className={item.state === "Arrivé" ? "btn-error" : "btn-yellow"}
-                    disabled={item.state === "Arrivé"} 
-                  >
-                    {item.state}
-                  </Button>
-                </td>
+
 
                 <td className="actionsBtn justify-content-center">
                   <Button
@@ -283,7 +327,7 @@ const Reception = () => {
                     onClick={() => handleOpenModalDelivery(item.id)}
                     disabled={item.state === "Arrivé"} // Disable action if already "Arrivé"
                   >
-                    {item.action}
+                    Validez l'arrivée
                   </Button>
                 </td>
               </tr>
@@ -353,7 +397,6 @@ const Reception = () => {
                             <table className="table table-bordered v-align">
                               <thead className="thead-dark">
                                 <tr>
-                                  <th>UID</th>
                                   <th>ID COLIS</th>
                                   <th>ID LIVRAISON</th>
                                   <th>VILLE DEPART</th>
@@ -361,37 +404,35 @@ const Reception = () => {
                                   <th>EXPEDITEUR</th>
                                   <th>DESTINATAIRE</th>
                                   <th>TYPE DE COLIS</th>
-                                  <th>ETATS</th>
-                                  <th>ACTIONS</th>
+                                  <th>ACTIONS/STATUT</th>
                                 </tr>
                               </thead>
 
                               <tbody>
-                                {dataRet
+                                {packages
                                   .filter((itemR) => {
                                     return searchR.toLowerCase() === ""
                                       ? itemR
-                                      : itemR.id_colis.toLowerCase().includes(searchR);
+                                      : itemR.numSerie.toLowerCase().includes(searchR);
                                   })
                                   .map((itemR) => (
-                                    <tr key={itemR.id}>
-                                      <td>{itemR.id}</td>
-                                      <td>{itemR.id_colis}</td>
-                                      <td>{itemR.id_livraison}</td>
-                                      <td>{itemR.ville_depart}</td>
-                                      <td>{itemR.ville_destinatrice}</td>
+                                    <tr key={itemR.numSerie}>
+                                      <td>{itemR.numSerie}</td>
+                                      <td>{itemR.numSerie}</td>
+                                      <td>{itemR.numSerie}</td>
+                                      <td>{itemR.destination}</td>
                                       <td>{itemR.expediteur}</td>
                                       <td>{itemR.destinataire}</td>
-                                      <td>{itemR.type_colis}</td>
+                                      <td>{itemR.nature}</td>
                                       <td className="actionsBtn justify-content-center">
                                         <Button
                                           color="success"
-                                          className={`${withdrawnStates[itemR.id] ? "btn-error" : "btn-green"
+                                          className={`${withdrawnStates[itemR.numSerie] ? "btn-error" : "btn-green"
                                             }`}
                                         >
-                                          {withdrawnStates[itemR.id]
+                                          {withdrawnStates[itemR.numSerie]
                                             ? "Indisponible"
-                                            : itemR.etat}
+                                            : itemR.status}
                                         </Button>
                                       </td>
                                       <td className="actionsBtn justify-content-center">
@@ -402,7 +443,7 @@ const Reception = () => {
                                           className={`${withdrawnStates[itemR.id] ? "btn-error" : "btn-green"
                                             }`}
                                         >
-                                          {withdrawnStates[itemR.id] ? "Déjà retiré" : itemR.actions}
+                                          {withdrawnStates[itemR.id] ? "Déjà retiré" : "Retirer"}
                                         </Button>
                                       </td>
                                     </tr>
